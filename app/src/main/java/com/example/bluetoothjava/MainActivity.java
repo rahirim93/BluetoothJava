@@ -11,6 +11,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -25,8 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
     ArrayList<BluetoothDevice> blueArray = new ArrayList<>();
-    ArrayList<BluetoothDevice> blueArrayClean = new ArrayList<>();
-    ArrayList<String> blueArrayCleanNames = new ArrayList<>();
+    ArrayList<String> blueArrayNames = new ArrayList<>();
 
     ArrayAdapter<String> arrayAdapter;// = new ArrayAdapter<BluetoothDevice>(this, android.R.layout.simple_list_item_1, blueArrayClean);
 
@@ -36,12 +36,29 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(activity_main);
 
+        ListView listView = findViewById(R.id.listView);
+
+
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-
+        //Создание слушателя
+        AdapterView.OnItemClickListener itemClickListener = new AdapterView.OnItemClickListener(){
+            public void onItemClick(AdapterView<?> listView,
+                                    View itemView,
+                                    int position,
+                                    long id) {
+                Intent intent = new Intent(MainActivity.this, BlueInfo.class);
+                intent.putExtra(BlueInfo.EXTRA_BLUENAME, blueArray.get((int) id).getName());
+                intent.putExtra(BlueInfo.EXTRA_BLUEADDRESS, blueArray.get((int) id).getAddress());
+                intent.putExtra(BlueInfo.EXTRA_BLUETYPE, blueArray.get((int) id).getType());
+                startActivity(intent);
+            }
+        };
+        //Назначение слушателя для спискового представления
+        listView.setOnItemClickListener(itemClickListener);
     }
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -49,34 +66,36 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                //Получаем силу сигнала получаемого от найденного устройства
+                int  rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI,Short.MIN_VALUE);
+                Toast.makeText(MainActivity.this,"  RSSI: " + rssi + "dBm", Toast.LENGTH_SHORT).show();
+
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
                 setListAdapter();
-                blueArray.add(device); //добавление устройств в нефильтрованный список
 
-                //фильтрация и добавление в чистый список
-                if (device != null) {
-                    if (!blueArrayClean.contains(device)) {
-                        blueArrayClean.add(device);
+                if (device != null){
+                    if (!blueArray.contains(device)){
+                        blueArray.add(device);
                         if (device.getName() != null){
-                            blueArrayCleanNames.add(device.getName());
-                        }
-                        arrayAdapter.notifyDataSetChanged();
+                            blueArrayNames.add(device.getName());
+                        } else blueArrayNames.add("null");
                     }
                 }
+                arrayAdapter.notifyDataSetChanged();
             }
         }
-
     };
 
     public void setListAdapter (){
         ListView listView = findViewById(R.id.listView);
-        arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, blueArrayCleanNames);
+        arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, blueArrayNames);
         listView.setAdapter(arrayAdapter);
     }
 
     public void discover(View view){
-        blueArrayCleanNames.clear();
+        blueArray.clear();
+        blueArrayNames.clear();
         if (!bluetoothAdapter.isEnabled()) { //Если блютуз выключен, сделать запрос на включение
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
