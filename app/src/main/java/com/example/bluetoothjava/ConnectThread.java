@@ -4,8 +4,10 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.UUID;
 
 public class ConnectThread extends Thread {
@@ -14,6 +16,8 @@ public class ConnectThread extends Thread {
     BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     private final BluetoothSocket mmSocket;
     private final BluetoothDevice mmDevice;
+    private OutputStream outputStream;
+
 
     public ConnectThread (String address) {
         // Use a temporary object that is later assigned to mmSocket
@@ -52,6 +56,18 @@ public class ConnectThread extends Thread {
         // The connection attempt succeeded. Perform work associated with
         // the connection in a separate thread.
         //manageMyConnectedSocket(mmSocket);
+
+
+    }
+
+    public void sendMsg(String message) {
+        try {
+            outputStream = mmSocket.getOutputStream();  //Получение исходящего потока
+            byte[] messageBuffer = message.getBytes();  //Перевод исходящего сообщения в байты
+            outputStream.write(messageBuffer);          //Запись в поток
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     // Closes the client socket and causes the thread to finish.

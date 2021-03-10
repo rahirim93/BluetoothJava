@@ -9,10 +9,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -22,6 +24,10 @@ public class BlueInfo extends AppCompatActivity {
 
     ConnectThread myConnect;
 
+
+    String message;
+
+    EditText editText;
 
     public static final MyBlue EXTRA_DRINKID = new MyBlue("", "");
     public static final String EXTRA_BLUENAME = "name";
@@ -53,7 +59,7 @@ public class BlueInfo extends AppCompatActivity {
         TextView type = findViewById(R.id.type);
         type.setText(blueTypeStr);
 
-
+        editText = findViewById(R.id.editTextSendData);
     }
 
     public void btnConnect(View view) {
@@ -103,5 +109,14 @@ public class BlueInfo extends AppCompatActivity {
     protected void onDestroy() {
         myConnect.cancel();
         super.onDestroy();
+    }
+
+    public void sendData(View view) {
+        try {
+            message = String.valueOf(editText.getText());
+            myConnect.sendMsg(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
