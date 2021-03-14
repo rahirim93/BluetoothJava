@@ -9,9 +9,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -36,6 +38,8 @@ public class BlueInfo extends AppCompatActivity {
 
     String blueAddress;
 
+    ToggleButton toggleButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +53,27 @@ public class BlueInfo extends AppCompatActivity {
         //int drinkId = (Integer)getIntent().getExtras().get(EXTRA_DRINKID);
         //MyBlue myBlue = EXTRA_DRINKID;
 
+        toggleButton = findViewById(R.id.toggleButton);
+        toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    // The toggle is enabled
+                    try {
+                        myConnect.sendMsg("0");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    // The toggle is disabled
+                    try {
+                        myConnect.sendMsg("1");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
 
         TextView name = findViewById(R.id.name);
         name.setText(blueName);
@@ -107,7 +132,9 @@ public class BlueInfo extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        myConnect.cancel();
+        if (myConnect != null){
+            myConnect.cancel();
+        }
         super.onDestroy();
     }
 
