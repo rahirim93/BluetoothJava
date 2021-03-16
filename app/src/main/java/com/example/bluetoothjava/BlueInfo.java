@@ -7,8 +7,10 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -16,6 +18,7 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -40,6 +43,11 @@ public class BlueInfo extends AppCompatActivity {
 
     ToggleButton toggleButton;
 
+    Handler h;
+    private StringBuilder sb = new StringBuilder();
+    final int RECIEVE_MESSAGE = 1;
+    private static final String TAG = "bluetooth2";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,9 +57,6 @@ public class BlueInfo extends AppCompatActivity {
         blueAddress = (String) getIntent().getExtras().get(EXTRA_BLUEADDRESS);
         int blueType = (int) getIntent().getExtras().get(EXTRA_BLUETYPE);
         String blueTypeStr = String.valueOf(blueType);
-        //MyBlue myBlue = getIntent().getExtras().get
-        //int drinkId = (Integer)getIntent().getExtras().get(EXTRA_DRINKID);
-        //MyBlue myBlue = EXTRA_DRINKID;
 
         toggleButton = findViewById(R.id.toggleButton);
         toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -85,6 +90,33 @@ public class BlueInfo extends AppCompatActivity {
         type.setText(blueTypeStr);
 
         editText = findViewById(R.id.editTextSendData);
+
+        TextView tempTextView = findViewById(R.id.tempTextView);    //TextView для вывода температуры
+
+
+        h = new Handler() {
+            public void handleMessage(android.os.Message msg) {
+                switch (msg.what) {
+                    case RECIEVE_MESSAGE:                                                   // если приняли сообщение в Handler
+                        byte[] readBuf = (byte[]) msg.obj;
+                        String strIncom = new String(readBuf, 0, msg.arg1);
+                        sb.append(strIncom);                                                // формируем строку
+                        int endOfLineIndex = sb.indexOf("\r\n");                            // определяем символы конца строки
+                        if (endOfLineIndex > 0) {                                            // если встречаем конец строки,
+                            String sbprint = sb.substring(0, endOfLineIndex);               // то извлекаем строку
+                            sb.delete(0, sb.length());                                      // и очищаем sb
+                            tempTextView.setText("Ответ от Arduino: " + sbprint);             // обновляем TextView
+                            //btnOff.setEnabled(true);
+                            //btnOn.setEnabled(true);
+                        }
+                        //Log.d(TAG, "...Строка:"+ sb.toString() +  "Байт:" + msg.arg1 + "...");
+                        break;
+                }
+            };
+        };
+
+        Button buttonConnect = findViewById(R.id.buttonConnect);
+        buttonConnect.setClickable(false);                          //Заблокировать кнопку
     }
 
     public void btnConnect(View view) {
@@ -144,6 +176,67 @@ public class BlueInfo extends AppCompatActivity {
             myConnect.sendMsg(message);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public void buttonReceive(View view) {
+        ConnectedThread connectedThread = new ConnectedThread(myConnect.getSocket());
+        connectedThread.start();
+    }
+
+    private class ConnectedThread extends Thread {
+        private final BluetoothSocket mmSocket;
+        private final InputStream mmInStream;
+        private final OutputStream mmOutStream;
+
+        public ConnectedThread(BluetoothSocket socket) {
+            mmSocket = socket;
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            // Get the input and output streams, using temp objects because
+            // member streams are final
+            try {
+                tmpIn = socket.getInputStream();
+                tmpOut = socket.getOutputStream();
+            } catch (IOException e) { }
+
+            mmInStream = tmpIn;
+            mmOutStream = tmpOut;
+        }
+
+        public void run() {
+            byte[] buffer = new byte[256];  // buffer store for the stream
+            int bytes; // bytes returned from read()
+
+            // Keep listening to the InputStream until an exception occurs
+            while (true) {
+                try {
+                    // Read from the InputStream
+                    bytes = mmInStream.read(buffer);        // Получаем кол-во байт и само собщение в байтовый массив "buffer"
+                    h.obtainMessage(RECIEVE_MESSAGE, bytes, -1, buffer).sendToTarget();     // Отправляем в очередь сообщений Handler
+                } catch (IOException e) {
+                    break;
+                }
+            }
+        }
+
+        /* Call this from the main activity to send data to the remote device */
+        public void write(String message) {
+            Log.d(TAG, "...Данные для отправки: " + message + "...");
+            byte[] msgBuffer = message.getBytes();
+            try {
+                mmOutStream.write(msgBuffer);
+            } catch (IOException e) {
+                Log.d(TAG, "...Ошибка отправки данных: " + e.getMessage() + "...");
+            }
+        }
+
+        /* Call this from the main activity to shutdown the connection */
+        public void cancel() {
+            try {
+                mmSocket.close();
+            } catch (IOException e) { }
         }
     }
 }

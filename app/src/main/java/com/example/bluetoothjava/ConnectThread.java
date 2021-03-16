@@ -18,6 +18,10 @@ public class ConnectThread extends Thread {
     private final BluetoothDevice mmDevice;
     private OutputStream outputStream;
 
+    public BluetoothSocket getSocket() {
+        return mmSocket;
+    }
+
 
     public ConnectThread (String address) {
         // Use a temporary object that is later assigned to mmSocket
@@ -56,6 +60,7 @@ public class ConnectThread extends Thread {
         // The connection attempt succeeded. Perform work associated with
         // the connection in a separate thread.
         //manageMyConnectedSocket(mmSocket);
+
 
 
     }
