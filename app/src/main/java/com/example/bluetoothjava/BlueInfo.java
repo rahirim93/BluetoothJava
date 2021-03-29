@@ -24,6 +24,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class BlueInfo extends AppCompatActivity {
+    String tagLifeCycle = "lifeCycle";
+
     //Сокет, с помощью которого мы будем отправлять данные на Arduino
     BluetoothSocket clientSocket;
 
@@ -34,7 +36,6 @@ public class BlueInfo extends AppCompatActivity {
 
     EditText editText;
 
-    public static final MyBlue EXTRA_DRINKID = new MyBlue("", "");
     public static final String EXTRA_BLUENAME = "name";
     public static final String EXTRA_BLUEADDRESS = "address";
     public static final String EXTRA_BLUETYPE = "type";
@@ -52,6 +53,8 @@ public class BlueInfo extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_blue_info);
+
+        Log.i(tagLifeCycle, "onCreate"); // Для теста жизненного цикла
 
         String blueName = (String) getIntent().getExtras().get(EXTRA_BLUENAME);
         blueAddress = (String) getIntent().getExtras().get(EXTRA_BLUEADDRESS);
@@ -117,6 +120,17 @@ public class BlueInfo extends AppCompatActivity {
 
         Button buttonConnect = findViewById(R.id.buttonConnect);
         buttonConnect.setClickable(false);                          //Заблокировать кнопку
+
+        //Подключение при запуске активити
+        if (myConnect == null){
+            myConnect = new ConnectThread(blueAddress);
+            myConnect.start();
+        }
+//        while (!myConnect.getSocket().isConnected()){
+//            Toast.makeText(this, "Подключение", Toast.LENGTH_SHORT).show();
+//        }
+        ConnectedThread connectedThread = new ConnectedThread(myConnect.getSocket());
+        connectedThread.start();
     }
 
     public void btnConnect(View view) {
@@ -159,15 +173,42 @@ public class BlueInfo extends AppCompatActivity {
 
     public void connectMine(View view) {
         myConnect = new ConnectThread(blueAddress);
-        myConnect.run();
+        myConnect.start();
+
     }
 
     @Override
     protected void onDestroy() {
+        Log.i(tagLifeCycle, "onDestroy"); // Для теста жизненного цикла
+
         if (myConnect != null){
             myConnect.cancel();
         }
         super.onDestroy();
+    }
+
+    @Override
+    protected void onStart() {
+        Log.i(tagLifeCycle, "onStart");
+        super.onStart();
+    }
+
+    @Override
+    protected void onPause() {
+        Log.i(tagLifeCycle, "onPause");
+        super.onPause();
+    }
+
+    @Override
+    protected void onRestart() {
+        Log.i(tagLifeCycle, "onRestart");
+        super.onRestart();
+    }
+
+    @Override
+    protected void onResume() {
+        Log.i(tagLifeCycle, "onResume");
+        super.onResume();
     }
 
     public void sendData(View view) {

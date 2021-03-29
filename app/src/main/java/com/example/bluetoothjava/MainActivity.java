@@ -59,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
         };
         //Назначение слушателя для спискового представления
         listView.setOnItemClickListener(itemClickListener);
+
+        discoverFun();
     }
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -67,8 +69,8 @@ public class MainActivity extends AppCompatActivity {
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 //Получаем силу сигнала получаемого от найденного устройства
-                int  rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI,Short.MIN_VALUE);
-                Toast.makeText(MainActivity.this,"  RSSI: " + rssi + "dBm", Toast.LENGTH_SHORT).show();
+                //int  rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI,Short.MIN_VALUE);
+                //Toast.makeText(MainActivity.this,"  RSSI: " + rssi + "dBm", Toast.LENGTH_SHORT).show();
 
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
@@ -94,6 +96,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void discover(View view){
+        discoverFun();
+    }
+
+    public void discoverFun() {
         blueArray.clear();
         blueArrayNames.clear();
         if (!bluetoothAdapter.isEnabled()) { //Если блютуз выключен, сделать запрос на включение
