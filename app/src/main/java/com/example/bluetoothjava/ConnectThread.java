@@ -3,12 +3,13 @@ package com.example.bluetoothjava;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.UUID;
+
 
 public class ConnectThread extends Thread {
     public static String TAG = "BLUETOOTH";
@@ -23,12 +24,11 @@ public class ConnectThread extends Thread {
     }
 
 
-    public ConnectThread (String address) {
+    public ConnectThread (String address, Context context) {
         // Use a temporary object that is later assigned to mmSocket
         // because mmSocket is final.
         BluetoothSocket tmp = null;
         mmDevice = bluetoothAdapter.getRemoteDevice(address);
-
         try {
             // Get a BluetoothSocket to connect with the given BluetoothDevice.
             // MY_UUID is the app's UUID string, also used in the server code.
@@ -56,7 +56,6 @@ public class ConnectThread extends Thread {
             }
             return;
         }
-
         // The connection attempt succeeded. Perform work associated with
         // the connection in a separate thread.
         //manageMyConnectedSocket(mmSocket);
@@ -83,4 +82,5 @@ public class ConnectThread extends Thread {
             Log.e(TAG, "Could not close the client socket", e);
         }
     }
+
 }

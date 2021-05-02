@@ -1,13 +1,11 @@
 package com.example.bluetoothjava;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -17,6 +15,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -24,27 +24,27 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class BlueInfo extends AppCompatActivity {
-    String tagLifeCycle = "lifeCycle";
+    // Переменные для извлечения информации о блютузе из главного активити
+    public static final String EXTRA_BLUENAME = "name";
+    public static final String EXTRA_BLUEADDRESS = "address";
+    public static final String EXTRA_BLUETYPE = "type";
+    String blueAddress;
+    String blueName;
+    String blueTypeStr;
+    int blueType;
 
     //Сокет, с помощью которого мы будем отправлять данные на Arduino
     BluetoothSocket clientSocket;
 
     ConnectThread myConnect;
 
-
     String message;
 
     EditText editText;
 
-    public static final String EXTRA_BLUENAME = "name";
-    public static final String EXTRA_BLUEADDRESS = "address";
-    public static final String EXTRA_BLUETYPE = "type";
-
-    String blueAddress;
-
     ToggleButton toggleButton;
 
-    Handler h;
+    public Handler h;
     private StringBuilder sb = new StringBuilder();
     final int RECIEVE_MESSAGE = 1;
     private static final String TAG = "bluetooth2";
@@ -54,13 +54,15 @@ public class BlueInfo extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_blue_info);
 
-        Log.i(tagLifeCycle, "onCreate"); // Для теста жизненного цикла
-
-        String blueName = (String) getIntent().getExtras().get(EXTRA_BLUENAME);
+        blueName = (String) getIntent().getExtras().get(EXTRA_BLUENAME);
         blueAddress = (String) getIntent().getExtras().get(EXTRA_BLUEADDRESS);
-        int blueType = (int) getIntent().getExtras().get(EXTRA_BLUETYPE);
-        String blueTypeStr = String.valueOf(blueType);
+        blueType = (int) getIntent().getExtras().get(EXTRA_BLUETYPE);
+        blueTypeStr = String.valueOf(blueType);
 
+        init();
+    }
+
+    public void init() {
         toggleButton = findViewById(R.id.toggleButton);
         toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -96,8 +98,7 @@ public class BlueInfo extends AppCompatActivity {
 
         TextView tempTextView = findViewById(R.id.tempTextView);    //TextView для вывода температуры
 
-
-        h = new Handler() {
+        h = new Handler(Looper.myLooper()) {
             public void handleMessage(android.os.Message msg) {
                 switch (msg.what) {
                     case RECIEVE_MESSAGE:                                                   // если приняли сообщение в Handler
@@ -118,19 +119,9 @@ public class BlueInfo extends AppCompatActivity {
             };
         };
 
+
         Button buttonConnect = findViewById(R.id.buttonConnect);
         buttonConnect.setClickable(false);                          //Заблокировать кнопку
-
-        //Подключение при запуске активити
-        if (myConnect == null){
-            myConnect = new ConnectThread(blueAddress);
-            myConnect.start();
-        }
-//        while (!myConnect.getSocket().isConnected()){
-//            Toast.makeText(this, "Подключение", Toast.LENGTH_SHORT).show();
-//        }
-        ConnectedThread connectedThread = new ConnectedThread(myConnect.getSocket());
-        connectedThread.start();
     }
 
     public void btnConnect(View view) {
@@ -172,43 +163,22 @@ public class BlueInfo extends AppCompatActivity {
     }
 
     public void connectMine(View view) {
-        myConnect = new ConnectThread(blueAddress);
-        myConnect.start();
-
+        try {
+            myConnect = new ConnectThread(blueAddress, this);
+            myConnect.start();
+        } catch (Exception e) {
+            Toast.makeText(this, "Ошибка соединения", Toast.LENGTH_SHORT);
+            e.printStackTrace();
+        }
+        if (myConnect.isAlive()) Toast.makeText(this, "Соединение установленно", Toast.LENGTH_SHORT);
     }
 
     @Override
     protected void onDestroy() {
-        Log.i(tagLifeCycle, "onDestroy"); // Для теста жизненного цикла
-
         if (myConnect != null){
             myConnect.cancel();
         }
         super.onDestroy();
-    }
-
-    @Override
-    protected void onStart() {
-        Log.i(tagLifeCycle, "onStart");
-        super.onStart();
-    }
-
-    @Override
-    protected void onPause() {
-        Log.i(tagLifeCycle, "onPause");
-        super.onPause();
-    }
-
-    @Override
-    protected void onRestart() {
-        Log.i(tagLifeCycle, "onRestart");
-        super.onRestart();
-    }
-
-    @Override
-    protected void onResume() {
-        Log.i(tagLifeCycle, "onResume");
-        super.onResume();
     }
 
     public void sendData(View view) {
@@ -221,8 +191,16 @@ public class BlueInfo extends AppCompatActivity {
     }
 
     public void buttonReceive(View view) {
-        ConnectedThread connectedThread = new ConnectedThread(myConnect.getSocket());
-        connectedThread.start();
+        try {
+            ConnectedThread connectedThread = new ConnectedThread(myConnect.getSocket());
+            connectedThread.start();
+        } catch (Exception e) {
+            Toast.makeText(this, "Отсутствует соединение", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        } finally {
+
+        }
+
     }
 
     private class ConnectedThread extends Thread {
@@ -241,7 +219,6 @@ public class BlueInfo extends AppCompatActivity {
                 tmpIn = socket.getInputStream();
                 tmpOut = socket.getOutputStream();
             } catch (IOException e) { }
-
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
         }
