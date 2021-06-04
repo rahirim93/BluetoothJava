@@ -3,6 +3,7 @@ package com.example.bluetoothjava;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,6 +23,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.UUID;
+
+import static android.widget.Toast.LENGTH_SHORT;
 
 public class BlueInfo extends AppCompatActivity {
     // Переменные для извлечения информации о блютузе из главного активити
@@ -60,6 +64,14 @@ public class BlueInfo extends AppCompatActivity {
         blueTypeStr = String.valueOf(blueType);
 
         init();
+
+        try {
+            myConnect = new ConnectThread(blueAddress, this);
+            myConnect.start();
+        } catch (Exception e) {
+            Toast.makeText(this, "Ошибка соединения", LENGTH_SHORT);
+            e.printStackTrace();
+        }
     }
 
     public void init() {
@@ -167,10 +179,9 @@ public class BlueInfo extends AppCompatActivity {
             myConnect = new ConnectThread(blueAddress, this);
             myConnect.start();
         } catch (Exception e) {
-            Toast.makeText(this, "Ошибка соединения", Toast.LENGTH_SHORT);
+            Toast.makeText(this, "Ошибка соединения", LENGTH_SHORT);
             e.printStackTrace();
         }
-        if (myConnect.isAlive()) Toast.makeText(this, "Соединение установленно", Toast.LENGTH_SHORT);
     }
 
     @Override
@@ -195,7 +206,7 @@ public class BlueInfo extends AppCompatActivity {
             ConnectedThread connectedThread = new ConnectedThread(myConnect.getSocket());
             connectedThread.start();
         } catch (Exception e) {
-            Toast.makeText(this, "Отсутствует соединение", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Отсутствует соединение", LENGTH_SHORT).show();
             e.printStackTrace();
         } finally {
 
@@ -257,4 +268,113 @@ public class BlueInfo extends AppCompatActivity {
             } catch (IOException e) { }
         }
     }
+
+    public class ConnectThread extends Thread {
+        public String TAG = "BLUETOOTH";
+        private final UUID MY_UUID =UUID.fromString ("00001101-0000-1000-8000-00805F9B34FB");
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        private final BluetoothSocket mmSocket;
+        private final BluetoothDevice mmDevice;
+        private OutputStream outputStream;
+        private InputStream inputStream;
+
+        public BluetoothSocket getSocket() {
+            return mmSocket;
+        }
+
+
+        public ConnectThread (String address, Context context) {
+            // Use a temporary object that is later assigned to mmSocket
+            // because mmSocket is final.
+            BluetoothSocket tmp = null;
+            mmDevice = bluetoothAdapter.getRemoteDevice(address);
+            try {
+                // Get a BluetoothSocket to connect with the given BluetoothDevice.
+                // MY_UUID is the app's UUID string, also used in the server code.
+                tmp = mmDevice.createRfcommSocketToServiceRecord(MY_UUID);
+            } catch (IOException e) {
+                Log.e(TAG, "Socket's create() method failed", e);
+            }
+            mmSocket = tmp;
+        }
+
+        public void run() {
+            // Cancel discovery because it otherwise slows down the connection.
+            BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
+
+            try {
+                // Connect to the remote device through the socket. This call blocks
+                // until it succeeds or throws an exception.
+                mmSocket.connect();
+            } catch (IOException connectException) {
+                // Unable to connect; close the socket and return.
+                try {
+                    mmSocket.close();
+                } catch (IOException closeException) {
+                    Log.e(TAG, "Could not close the client socket", closeException);
+                }
+                return;
+            }
+
+            //Показать тост если соединение успешно
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast toast = Toast.makeText(getApplicationContext(), "Соединено", LENGTH_SHORT);
+                    toast.show();
+                }
+            });
+
+
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            // Get the input and output streams, using temp objects because
+            // member streams are final
+            try {
+                tmpIn = mmSocket.getInputStream();
+                tmpOut = mmSocket.getOutputStream();
+            } catch (IOException e) { }
+            inputStream = tmpIn;
+            outputStream = tmpOut;
+
+            byte[] buffer = new byte[256];  // buffer store for the stream
+            int bytes; // bytes returned from read()
+
+            // Keep listening to the InputStream until an exception occurs
+            while (true) {
+                try {
+                    // Read from the InputStream
+                    bytes = inputStream.read(buffer);        // Получаем кол-во байт и само собщение в байтовый массив "buffer"
+                    h.obtainMessage(RECIEVE_MESSAGE, bytes, -1, buffer).sendToTarget();     // Отправляем в очередь сообщений Handler
+                } catch (IOException e) {
+                    break;
+                }
+            }
+            // The connection attempt succeeded. Perform work associated with
+            // the connection in a separate thread.
+            //manageMyConnectedSocket(mmSocket);
+
+        }
+
+        public void sendMsg(String message) {
+            try {
+                outputStream = mmSocket.getOutputStream();  //Получение исходящего потока
+                byte[] messageBuffer = message.getBytes();  //Перевод исходящего сообщения в байты
+                outputStream.write(messageBuffer);          //Запись в поток
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Closes the client socket and causes the thread to finish.
+        public void cancel() {
+            try {
+                mmSocket.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Could not close the client socket", e);
+            }
+        }
+    }
+
 }

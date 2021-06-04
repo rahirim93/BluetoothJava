@@ -28,20 +28,28 @@ public class MainActivity extends AppCompatActivity {
 
     ArrayAdapter<String> arrayAdapter;// = new ArrayAdapter<BluetoothDevice>(this, android.R.layout.simple_list_item_1, blueArrayClean);
 
+    ListView listView;
 
+    IntentFilter filter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(activity_main);
 
-        ListView listView = findViewById(R.id.listView);
+        init();
 
+        discoverFun();
+    }
 
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+    void init() {
+        listView = findViewById(R.id.listView);
+
+        filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
+        Intent intent;
         //Создание слушателя
         AdapterView.OnItemClickListener itemClickListener = new AdapterView.OnItemClickListener(){
             public void onItemClick(AdapterView<?> listView,
@@ -57,8 +65,6 @@ public class MainActivity extends AppCompatActivity {
         };
         //Назначение слушателя для спискового представления
         listView.setOnItemClickListener(itemClickListener);
-
-        discoverFun();
     }
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -81,6 +87,16 @@ public class MainActivity extends AppCompatActivity {
                             blueArrayNames.add(device.getName());
                         } else blueArrayNames.add("null");
                     }
+                    if (device.getName() != null) {
+                        if (device.getName().equals("HC-05")) {
+                            Intent intent1 = new Intent(MainActivity.this, BlueInfo.class);
+                            intent1.putExtra(BlueInfo.EXTRA_BLUENAME, device.getName());
+                            intent1.putExtra(BlueInfo.EXTRA_BLUEADDRESS, device.getAddress());
+                            intent1.putExtra(BlueInfo.EXTRA_BLUETYPE, device.getType());
+                            startActivity(intent1);
+                        }
+                    }
+
                 }
                 arrayAdapter.notifyDataSetChanged();
             }
