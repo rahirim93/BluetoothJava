@@ -1,11 +1,14 @@
 package com.example.bluetoothjava;
 
+import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -13,6 +16,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 
@@ -37,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(activity_main);
 
         init();
+
+        checkAndRequestPermissions();
 
         discoverFun();
     }
@@ -65,6 +72,36 @@ public class MainActivity extends AppCompatActivity {
         };
         //Назначение слушателя для спискового представления
         listView.setOnItemClickListener(itemClickListener);
+    }
+
+    void checkAndRequestPermissions() {
+        if((ContextCompat.checkSelfPermission(this,
+                Manifest.permission.BLUETOOTH) ==
+                PackageManager.PERMISSION_DENIED)) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] { Manifest.permission.BLUETOOTH}, 1);
+        }
+
+        if((ContextCompat.checkSelfPermission(this,
+                Manifest.permission.BLUETOOTH_ADMIN) ==
+                PackageManager.PERMISSION_DENIED)) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] { Manifest.permission.BLUETOOTH_ADMIN}, 1);
+        }
+
+        if((ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_DENIED)) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] { Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+        }
+
+        if((ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_DENIED)) {
+            ActivityCompat.requestPermissions(this,
+                    new String[] { Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        }
     }
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {

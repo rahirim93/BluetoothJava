@@ -29,6 +29,10 @@ android {
 }
 
 dependencies {
+    // Для запроса разрешений
+    def activity_version = "1.2.3"
+    // Java language implementation
+    implementation "androidx.activity:activity:$activity_version"
 
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.google.android.material:material:1.2.1'
